@@ -1,32 +1,38 @@
 library(shiny)
+library(maps)
+library(mapproj)
+source("~/learning_R/helpers.R")
+
+census <- readRDS("~/learning_R/data/counties.rds")
 
 # Define UI ----
 ui <- fluidPage(
-  titlePanel("My Shiny App"),
+  titlePanel("Census data visualization"),
   sidebarLayout(
     sidebarPanel(
-      h2("Installation"),
+      helpText("Visualizes census data"),
+      selectInput("var",
+                  label = "Please select",
+                  choices = list("Percent White", 
+                                 "Percent Black",
+                                 "Percent Hispanic", 
+                                 "Percent Asian"),
+                  selected = "Percent White"),
+      sliderInput("range",
+                  label = "Range of interest",
+                  min = 0,
+                  max = 100,
+                  value = c(0,100)),
       p("Shiny is available on CRAN under:"),
       code("install.packages(Shiny)"),
-      img(src = "rstudio.png", height = 70, width = 200)
+      actionButton("action", label = "Action")
       
     ),
   mainPanel(
-    h1("Introducing Shiny"),
-    p("Shiny is a new package from RStudio that makes it ", 
-      em("incredibly easy "), 
-      "to build interactive web applications with R."),
-    br(),
-    p("For an introduction and live examples, visit the ",
-      a("Shiny homepage.", 
-        href = "http://shiny.rstudio.com")),
-    br(),
-    h2("Features"),
-    p("- Build useful web applications with only a few lines of code—no JavaScript required."),
-    p("- Shiny applications are automatically 'live' in the same way that ", 
-      strong("spreadsheets"),
-      " are live. Outputs change instantly as users modify inputs, without requiring a reload of the browser.")
-  )
+    textOutput("Selected_var"),
+    textOutput("Selected_range"),
+    plotOutput("Map")
+   )
     
     
     
@@ -36,7 +42,37 @@ ui <- fluidPage(
 
 # Define server logic ----
 server <- function(input, output) {
+  output$Map <- renderPlot({
+    data <- switch(input$var, 
+                   "Percent White" = counties$white,
+                   "Percent Black" = counties$black,
+                   "Percent Hispanic" = counties$hispanic,
+                   "Percent Asian" = counties$asian)
+    
+    color <- switch(input$var, 
+                    "Percent White" = "darkgreen",
+                    "Percent Black" = "black",
+                    "Percent Hispanic" = "darkorange",
+                    "Percent Asian" = "darkviolet")
+    
+    legend <- switch(input$var, 
+                     "Percent White" = "% White",
+                     "Percent Black" = "% Black",
+                     "Percent Hispanic" = "% Hispanic",
+                     "Percent Asian" = "% Asian")
+    percent_map(data, color, legend, input$range[1], input$range[2])
+    
+  })
   
+  output$Selected_var <- renderText({
+    paste("You have selected", input$var)
+  })
+  output$Selected_range <- renderText({
+    paste("You have selected a range of", input$range[1], "to", input$range[2])
+  }
+    
+    
+  )
 }
 
 # Run the app ----
